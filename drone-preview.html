@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>高速交管七支队 · 无人机管理系统</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:#f0f2f5;color:#2c3e50;font-size:14px}
+:root{--primary:#1a3a5c;--primary-light:#2d5a8a;--accent:#e8a838;--success:#2ecc71;--warning:#f39c12;--danger:#e74c3c;--info:#3498db;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text2:#7f8c8d;--border:#e8ecf1}
+
+/* Top Bar */
+.topbar{background:linear-gradient(135deg,#1a3a5c,#2d5a8a);color:#fff;padding:16px 20px;text-align:center}
+.topbar h1{font-size:20px;font-weight:700}
+.topbar .sub{font-size:13px;opacity:.85;margin-top:2px}
+
+/* Tab Navigation */
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:99;overflow-x:auto}
+.tab{flex:1;min-width:60px;text-align:center;padding:14px 8px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;user-select:none}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+
+/* Main Content */
+.main{padding:16px;padding-bottom:80px;max-width:800px;margin:0 auto}
+
+/* Cards */
+.card{background:var(--card);border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.card-title{font-size:16px;font-weight:600;color:var(--primary);margin-bottom:16px}
+
+/* Stats Grid */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:var(--card);border-radius:14px;padding:18px 14px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06);cursor:pointer}
+.stat-card .num{font-size:32px;font-weight:700;color:var(--primary);line-height:1.2}
+.stat-card .lbl{font-size:12px;color:var(--text2);margin-top:4px}
+.stat-card.highlight{background:linear-gradient(135deg,#e8a838,#f0c060);color:#fff}
+.stat-card.highlight .num,.stat-card.highlight .lbl{color:#fff}
+
+/* Quick Actions */
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qa{background:var(--bg);border-radius:12px;padding:18px;text-align:center;cursor:pointer;font-size:13px}
+.qa .icon{font-size:28px;margin-bottom:6px;display:block}
+.qa:hover{background:#e0e4e8}
+
+/* Filter Row */
+.filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter{font-size:12px;padding:6px 16px;border-radius:20px;background:#fff;border:1px solid var(--border);cursor:pointer;color:var(--text2)}
+.filter.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* Search */
+.search{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:24px;font-size:14px;margin-bottom:14px;outline:none}
+.search:focus{border-color:var(--primary)}
+
+/* List Items */
+.list-item{background:var(--card);border-radius:12px;padding:16px 18px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,.04);cursor:pointer}
+.list-item .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.list-item .name{font-size:15px;font-weight:600}
+.list-item .meta{font-size:12px;color:var(--text2);display:flex;gap:12px;flex-wrap:wrap}
+.list-item .meta span{white-space:nowrap}
+.list-item .actions{display:flex;gap:8px;margin-top:8px}
+.list-item .actions a{font-size:12px;color:var(--primary);cursor:pointer;text-decoration:none}
+.list-item .actions a.danger{color:var(--danger)}
+
+/* Tags */
+.tag{display:inline-block;padding:2px 10px;border-radius:6px;font-size:11px;font-weight:500}
+.tag-success{background:#e8f8f0;color:#27ae60}
+.tag-warning{background:#fef5e7;color:#e67e22}
+.tag-danger{background:#fdedec;color:#c0392b}
+.tag-info{background:#eaf2f8;color:#2980b9}
+.tag-default{background:#f0f2f5;color:#7f8c8d}
+
+/* Buttons */
+.btn{display:inline-block;padding:10px 22px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;border:none;text-align:center;text-decoration:none;transition:.2s}
+.btn:hover{opacity:.9}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn-warning{background:var(--warning);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-outline{background:transparent;border:1px solid var(--primary);color:var(--primary)}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:8px}
+.btn-block{display:block;width:100%}
+
+/* Modal */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:#fff;width:100%;max-width:600px;max-height:85vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border)}
+.modal-head .title{font-size:17px;font-weight:600}
+.modal-head .close{font-size:22px;color:#999;cursor:pointer;padding:4px 8px}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1;max-height:60vh}
+.modal-foot{padding:14px 20px 20px;display:flex;gap:12px;border-top:1px solid var(--border)}
+
+/* Form */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:var(--text)}
+.form-input{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;outline:none}
+.form-input:focus{border-color:var(--primary)}
+.form-select{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;outline:none;background:#fff}
+.form-textarea{width:100%;min-height:80px;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;outline:none;resize:vertical}
+.status-selector{display:flex;flex-wrap:wrap;gap:8px}
+.ss-item{padding:8px 18px;border-radius:8px;font-size:13px;background:var(--bg);cursor:pointer;border:2px solid transparent}
+.ss-item.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* Chart container */
+.chart-wrap{background:var(--card);border-radius:14px;padding:20px;margin-bottom:14px}
+.chart-wrap canvas{max-height:260px}
+
+/* Achievement bar chart */
+.type-bars{display:flex;flex-direction:column;gap:12px}
+.tb-item{display:flex;align-items:center;gap:10px}
+.tb-bar-wrap{flex:1;height:22px;background:var(--bg);border-radius:11px;overflow:hidden}
+.tb-bar{height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-light));border-radius:11px;transition:width .5s}
+.tb-info{width:180px;display:flex;justify-content:space-between;font-size:13px;flex-shrink:0}
+.tb-label{color:var(--text)}
+.tb-count{color:var(--primary);font-weight:500}
+
+/* Empty state */
+.empty{text-align:center;padding:60px 0;color:var(--text2)}
+.empty .icon{font-size:48px;margin-bottom:10px}
+
+/* FAB */
+.fab{position:fixed;right:20px;bottom:80px;width:54px;height:54px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;box-shadow:0 4px 16px rgba(26,58,92,.4);z-index:100}
+.fab:active{transform:scale(.95)}
+
+/* Section */
+.section-title{font-size:15px;font-weight:600;color:var(--primary);margin-bottom:14px}
+
+/* Status bar */
+.status-bar{display:flex;border-radius:10px;overflow:hidden;height:50px;margin:8px 0}
+.status-seg{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:500}
+.status-seg .cnt{font-size:20px;font-weight:700}
+.seg-active{background:#2ecc71}.seg-idle{background:#3498db}.seg-maintenance{background:#f39c12}.seg-repair{background:#e74c3c}.seg-scrapped{background:#95a5a6}
+
+/* Info grid */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:12px}
+.info-row{font-size:13px}.info-row .k{color:var(--text2)}.info-row .v{color:var(--text);margin-left:4px}
+
+/* Photo upload */
+.photo-section{margin-top:4px}
+.photo-add-area{display:flex;align-items:center;justify-content:center;width:80px;height:80px;border:2px dashed var(--border);border-radius:12px;cursor:pointer;font-size:28px;color:var(--text2);flex-shrink:0;transition:.2s}
+.photo-add-area:hover{border-color:var(--primary);color:var(--primary);background:#f0f6ff}
+.photo-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.photo-thumb{position:relative;width:80px;height:80px;border-radius:10px;overflow:hidden;cursor:pointer;flex-shrink:0}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-thumb .photo-del{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;opacity:0;transition:.2s}
+.photo-thumb:hover .photo-del{opacity:1}
+.photo-count{display:inline-flex;align-items:center;gap:2px;font-size:11px;color:var(--primary);background:#eaf2f8;padding:2px 8px;border-radius:8px;margin-left:4px}
+/* Video thumb */
+.video-thumb{position:relative;width:80px;height:80px;border-radius:10px;overflow:hidden;cursor:pointer;flex-shrink:0;background:#000}
+.video-thumb img{width:100%;height:100%;object-fit:cover;opacity:.8}
+.video-thumb .play-icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+.video-thumb .video-del{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;opacity:0;transition:.2s}
+.video-thumb:hover .video-del{opacity:1}
+.video-thumb .video-dur{position:absolute;bottom:3px;right:4px;font-size:10px;color:#fff;background:rgba(0,0,0,.5);padding:1px 5px;border-radius:4px}
+.video-count{display:inline-flex;align-items:center;gap:2px;font-size:11px;color:#e74c3c;background:#fdedec;padding:2px 8px;border-radius:8px;margin-left:4px}
+/* Video in full preview */
+.img-preview-overlay video{max-width:95%;max-height:85vh;border-radius:8px;box-shadow:0 4px 30px rgba(0,0,0,.5)}
+/* Recording indicator */
+.recording-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#e74c3c;animation:blink 1s infinite;margin-right:4px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+/* Image preview overlay */
+.img-preview-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:300;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.img-preview-overlay img{max-width:95%;max-height:90vh;border-radius:8px;box-shadow:0 4px 30px rgba(0,0,0,.5)}
+.img-preview-overlay .img-close{position:fixed;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;z-index:301}
+.img-preview-nav{position:fixed;top:50%;transform:translateY(-50%);color:#fff;font-size:36px;cursor:pointer;padding:16px;z-index:301;user-select:none}
+.img-preview-prev{left:8px}.img-preview-next{right:8px}
+.img-counter{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;z-index:301;background:rgba(0,0,0,.5);padding:4px 16px;border-radius:12px}
+
+/* Hidden */
+.hidden{display:none !important}
+/* Select filter */
+.select-filter-wrap{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.select-filter{flex:1;padding:9px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;outline:none;background:#fff;color:var(--text);cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%237f8c8d'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.select-filter:focus{border-color:var(--primary)}
+#page-home,#page-devices,#page-pilots,#page-missions,#page-achievements,#page-settings{display:none}
+#page-home.active,#page-devices.active,#page-pilots.active,#page-missions.active,#page-achievements.active,#page-settings.active{display:block}
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div>高速交管七支队</div>
+  <h1>无人机管理系统</h1>
+</div>
+
+<!-- Tabs -->
+<div class="tabs" id="tabs">
+  <div class="tab active" data-page="home">📊 首页</div>
+  <div class="tab" data-page="devices">🚁 设备</div>
+  <div class="tab" data-page="pilots">👨‍✈️ 驾驶员</div>
+  <div class="tab" data-page="missions">🛩️ 任务</div>
+  <div class="tab" data-page="achievements">🏆 战果</div>
+  <div class="tab" data-page="settings">⚙️ 设置</div>
+</div>
+
+<!-- ==================== 首页 ==================== -->
+<div class="main">
+<div id="page-home" class="active">
+  <div class="stats" id="homeStats"></div>
+  <div class="filters" id="homeFilters" style="margin-bottom:12px">
+    <span class="filter active" onclick="filterHome('month', this)">本月</span>
+    <span class="filter" onclick="filterHome('week', this)">本周</span>
+    <span class="filter" onclick="filterHome('today', this)">今日</span>
+    <span class="filter" onclick="filterHome('quarter', this)">本季</span>
+    <span class="filter" onclick="filterHome('year', this)">今年</span>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px" id="customDateWrap">
+    <input type="date" id="customStart" class="form-input" style="flex:1;padding:8px 10px;font-size:12px;border-radius:8px" onchange="document.querySelectorAll('#homeFilters .filter').forEach(f=>f.classList.remove('active'))">
+    <span style="color:var(--text2);font-size:12px">至</span>
+    <input type="date" id="customEnd" class="form-input" style="flex:1;padding:8px 10px;font-size:12px;border-radius:8px" onchange="document.querySelectorAll('#homeFilters .filter').forEach(f=>f.classList.remove('active'))">
+    <button class="btn btn-sm btn-primary" onclick="applyCustomRange()" style="white-space:nowrap">确定</button>
+    <button class="btn btn-sm btn-outline" onclick="resetCustomRange()" style="white-space:nowrap;font-size:11px">清除</button>
+  </div>
+  <div class="card" id="droneRankCard"></div>
+  <div class="card" id="pilotRankCard"></div>
+  <div class="card" id="droneStatusCard"></div>
+  <div class="card">
+    <div class="card-title">快捷操作</div>
+    <div class="quick">
+      <div class="qa" onclick="switchTab('missions');openMissionForm()"><span class="icon">+</span>新建飞行任务</div>
+      <div class="qa" onclick="switchTab('devices')"><span class="icon">📋</span>管理设备台账</div>
+      <div class="qa" onclick="switchTab('achievements')"><span class="icon">📊</span>查看战果统计</div>
+      <div class="qa" onclick="switchTab('settings')"><span class="icon">⚙️</span>数据导入导出</div>
+    </div>
+  </div>
+  <div class="card" id="recentMissionsCard"></div>
+  <div class="card" id="monthAchCard"></div>
+</div>
+
+<!-- ==================== 设备管理 ==================== -->
+<div id="page-devices">
+  <input type="text" class="search" id="deviceSearch" placeholder="搜索设备名称/型号/编号..." oninput="renderDevices()">
+  <div class="select-filter-wrap">
+    <select class="select-filter" id="deviceDeptSelect" onchange="deviceDeptFilter=this.value;renderDevices()">
+      <option value="">全部大队</option>
+    </select>
+  </div>
+  <div class="filters" id="deviceFilters">
+    <span class="filter active" onclick="filterDevices('', this)">全部</span>
+    <span class="filter" onclick="filterDevices('active', this)">🟢 执勤</span>
+    <span class="filter" onclick="filterDevices('idle', this)">🔵 待命</span>
+    <span class="filter" onclick="filterDevices('maintenance', this)">🟡 维护</span>
+    <span class="filter" onclick="filterDevices('repair', this)">🔴 维修</span>
+  </div>
+  <div id="deviceList"></div>
+  <div class="fab" onclick="openDeviceForm()">+</div>
+</div>
+
+<!-- ==================== 驾驶员 ==================== -->
+<div id="page-pilots">
+  <div class="select-filter-wrap">
+    <select class="select-filter" id="pilotDeptSelect" onchange="pilotDeptFilter=this.value;renderPilots()">
+      <option value="">全部大队</option>
+    </select>
+  </div>
+  <div id="pilotList"></div>
+  <div class="fab" onclick="openPilotForm()">+</div>
+</div>
+
+<!-- ==================== 飞行任务 ==================== -->
+<div id="page-missions">
+  <div class="filters" id="missionFilters">
+    <span class="filter" onclick="filterMissions('today', this)">今日</span>
+    <span class="filter" onclick="filterMissions('week', this)">本周</span>
+    <span class="filter active" onclick="filterMissions('month', this)">本月</span>
+    <span class="filter" onclick="filterMissions('year', this)">今年</span>
+    <span class="filter" onclick="filterMissions('all', this)">全部</span>
+  </div>
+  <div id="missionList"></div>
+  <div class="fab" onclick="openMissionForm()">+</div>
+</div>
+
+<!-- ==================== 战果统计 ==================== -->
+<div id="page-achievements">
+  <div class="filters" id="achFilters">
+    <span class="filter" onclick="filterAch('week', this)">本周</span>
+    <span class="filter active" onclick="filterAch('month', this)">本月</span>
+    <span class="filter" onclick="filterAch('year', this)">今年</span>
+    <span class="filter" onclick="filterAch('all', this)">全部</span>
+  </div>
+  <div id="achTotalCard"></div>
+  <div class="card"><div class="card-title">战果分类统计</div><div class="type-bars" id="achTypeBars"></div></div>
+  <div class="chart-wrap"><div class="card-title" style="margin-bottom:12px">每日战果趋势</div><canvas id="achTrendChart"></canvas></div>
+  <div class="card"><div class="card-title">战果明细</div><div id="achList"></div></div>
+  <div class="fab" onclick="openAchForm()">+</div>
+</div>
+
+<!-- ==================== 设置 ==================== -->
+<div id="page-settings">
+  <div class="card">
+    <div class="card-title">数据概况</div>
+    <div id="settingsStats"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">数据管理</div>
+    <button class="btn btn-primary btn-block" style="margin-bottom:12px" onclick="exportJSON()">📤 导出数据 (JSON)</button>
+    <button class="btn btn-outline btn-block" style="margin-bottom:12px" onclick="exportCSV()">📤 导出数据 (Excel/CSV)</button>
+    <button class="btn btn-outline btn-block" style="margin-bottom:12px" onclick="document.getElementById('importFile').click()">📥 导入数据 (JSON/Excel)</button>
+    <input type="file" id="importFile" accept=".json,.xlsx,.xls" style="display:none" onchange="importFile(this)">
+    <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
+    <button class="btn btn-danger btn-block" onclick="clearAllData()">⚠️ 清除全部数据</button>
+  </div>
+  <div class="card">
+    <div class="card-title">系统信息</div>
+    <div class="info-grid">
+      <div class="info-row"><span class="k">系统</span><span class="v">无人机管理系统 v2.0 · 共享版</span></div>
+      <div class="info-row"><span class="k">数据</span><span class="v">Supabase 云端 · 多人实时同步</span></div>
+      <div class="info-row"><span class="k">单位</span><span class="v">高速交管七支队</span></div>
+      <div class="info-row"><span class="k">在线版</span><span class="v">drone-hn7.htmlcode.fun</span></div>
+      <div class="info-row"><span class="k">存储</span><span class="v">浏览器本地存储</span></div>
+    </div>
+  </div>
+  <p style="text-align:center;color:var(--text2);font-size:12px;margin-top:30px">高速交管七支队 · 无人机管理</p>
+</div>
+</div>
+
+<!-- ==================== Image Preview ==================== -->
+<div class="img-preview-overlay hidden" id="imgPreview" onclick="closeImgPreview()">
+  <span class="img-close" onclick="closeImgPreview()">✕</span>
+  <span class="img-preview-nav img-preview-prev" onclick="event.stopPropagation();navImgPreview(-1)">‹</span>
+  <img id="imgPreviewImg" src="" alt="预览" onclick="event.stopPropagation()" style="display:none">
+  <video id="imgPreviewVideo" controls playsinline onclick="event.stopPropagation()" style="display:none"></video>
+  <span class="img-preview-nav img-preview-next" onclick="event.stopPropagation();navImgPreview(1)">›</span>
+  <span class="img-counter" id="imgCounter"></span>
+</div>
+
+<!-- ==================== Modal ==================== -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalBox" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <span class="title" id="modalTitle">表单</span>
+      <span class="close" onclick="closeModal()">✕</span>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<script>
+// ==================== DATA LAYER ====================
+// ==================== CLOUD API CONFIG (Supabase) ====================
+const DB_URL = 'https://zvoixyvvzcvbuxlumfew.supabase.co/rest/v1';
+const DB_KEY = 'sb_publishable_4p1gv6lrQzv3_4YO_FP3aw_Gp1BknMU';
+const USE_CLOUD = true;
+const DB_HEADERS = { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + DB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
+
+const Cloud = {
+  async _fetch(url, opts) {
+    try { const r = await fetch(url, opts); return r.ok ? await r.json() : null; }
+    catch(e) { console.error('Cloud:', e); return null; }
+  },
+  async list(col) {
+    const rows = await this._fetch(DB_URL + '/' + col + '?select=*&order=created_at.desc', { headers: DB_HEADERS });
+    return rows ? rows.map(r => ({ ...r.data, id: r.id })) : [];
+  },
+  async add(col, item) {
+    const r = await this._fetch(DB_URL + '/' + col, { method: 'POST', headers: DB_HEADERS, body: JSON.stringify({ id: item.id, data: item }) });
+    return r ? r[0] : null;
+  },
+  async update(col, id, item) {
+    const r = await this._fetch(DB_URL + '/' + col + '?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: DB_HEADERS, body: JSON.stringify({ data: item }) });
+    return r ? r[0] : null;
+  },
+  async delete(col, id) {
+    return await this._fetch(DB_URL + '/' + col + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE', headers: DB_HEADERS });
+  }
+};
+
+// ==================== DATA LAYER ====================
+const LS = {
+  get(k) { try { return JSON.parse(localStorage.getItem('dr_' + k) || '[]') } catch(e) { return [] } },
+  set(k, v) { localStorage.setItem('dr_' + k, JSON.stringify(v)) },
+  add(k, item) {
+    const list = this.get(k);
+    const newItem = { ...item, id: Date.now().toString(36) + Math.random().toString(36).substr(2,6), createTime: new Date().toISOString() };
+    list.push(newItem); this.set(k, list);
+    // Cloud sync (background)
+    if (USE_CLOUD) Cloud.add(k, newItem).catch(()=>{});
+    return newItem;
+  },
+  update(k, id, updates) {
+    const list = this.get(k); const idx = list.findIndex(i => i.id === id);
+    if (idx === -1) return null; list[idx] = { ...list[idx], ...updates, id }; this.set(k, list);
+    if (USE_CLOUD) Cloud.update(k, id, list[idx]).catch(()=>{});
+    return list[idx];
+  },
+  delete(k, id) {
+    const list = this.get(k).filter(i => i.id !== id); this.set(k, list);
+    if (USE_CLOUD) Cloud.delete(k, id).catch(()=>{});
+  },
+  getById(k, id) { return this.get(k).find(i => i.id === id) || null; },
+  query(k, fn) { return this.get(k).filter(fn); }
+};
+
+async function syncFromCloud() {
+  if (!USE_CLOUD) return;
+  for (const col of ['drones','maintenance','pilots','missions','achievements']) {
+    try {
+      const data = await Cloud.list(col);
+      if (data && data.length) {
+        LS.set(col, data.map(d => {
+          const item = { ...d }; if (d._id) { item.id = d._id; delete item._id; }
+          return item;
+        }));
+      }
+    } catch(e) { console.error('Sync ' + col + ' error:', e); }
+  }
+  console.log('Cloud sync done');
+}
+
+// Init storage
+['drones','maintenance','pilots','missions','achievements'].forEach(k => { if (!localStorage.getItem('dr_'+k)) LS.set(k, []); });
+
+// ==================== INDEXEDDB IMAGE STORAGE (local fallback) ====================
+const LocalMedia = {
+  _db: null, _ready: null,
+  _init() {
+    if (this._ready) return this._ready;
+    this._ready = new Promise((resolve, reject) => {
+      const req = indexedDB.open('drone_imgs', 2);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('images')) db.createObjectStore('images', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('videos')) db.createObjectStore('videos', { keyPath: 'id' });
+      };
+      req.onsuccess = (e) => { this._db = e.target.result; resolve(this._db); };
+      req.onerror = (e) => reject(e);
+    });
+    return this._ready;
+  },
+  async saveImage(id, base64) { await this._init(); return new Promise((resolve, reject) => { const tx = this._db.transaction('images','readwrite'); tx.objectStore('images').put({id, data:base64, ts:Date.now()}); tx.oncomplete=resolve; tx.onerror=reject; }); },
+  async getImage(id) { await this._init(); return new Promise((resolve, reject) => { const tx = this._db.transaction('images','readonly'); const req = tx.objectStore('images').get(id); req.onsuccess=()=>resolve(req.result?req.result.data:null); req.onerror=reject; }); },
+  async deleteImage(id) { await this._init(); return new Promise((resolve, reject) => { const tx = this._db.transaction('images','readwrite'); tx.objectStore('images').delete(id); tx.oncomplete=resolve; tx.onerror=reject; }); },
+  async saveVideo(id, arrayBuffer, thumb) { await this._init(); return new Promise((resolve, reject) => { const tx = this._db.transaction('videos','readwrite'); tx.objectStore('videos').put({id, data:arrayBuffer, thumb:thumb||''}); tx.oncomplete=resolve; tx.onerror=reject; }); },
+  async getVideo(id) { await this._init(); return new Promise((resolve, reject) => { const tx = this._db.transaction('videos','readonly'); const req = tx.objectStore('videos').get(id); req.onsuccess=()=>resolve(req.result||null); req.onerror=reject; }); },
+  async deleteVideo(id) { await this._init(); return new Promise((resolve, reject) => { const tx = this._db.transaction('videos','readwrite'); tx.objectStore('videos').delete(id); tx.oncomplete=resolve; tx.onerror=reject; }); }
+};
+
+// ==================== IMAGE/VIDEO STORAGE (Cloud Supabase Storage) ====================
+const STORAGE_PUBLIC = 'https://zvoixyvvzcvbuxlumfew.supabase.co/storage/v1/object/public/media/';
+const STORAGE_UPLOAD = 'https://zvoixyvvzcvbuxlumfew.supabase.co/storage/v1/object/media/';
+const STORAGE_HEADERS = { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + DB_KEY };
+
+const ImgDB = {
+  _base64ToBlob(base64) {
+    const arr = base64.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    const u8arr = new Uint8Array(bstr.length);
+    for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+    return new Blob([u8arr], { type: mime });
+  },
+  _storageUrl(path) { return STORAGE_PUBLIC + path; },
+  _uploadUrl(path) { return STORAGE_UPLOAD + path; },
+  async _upload(path, blob) { await fetch(this._uploadUrl(path), { method: 'POST', headers: STORAGE_HEADERS, body: blob }); },
+  async _deleteFile(path) { await fetch(this._uploadUrl(path), { method: 'DELETE', headers: STORAGE_HEADERS }); },
+
+  async save(id, base64) {
+    if (USE_CLOUD) { await this._upload(id, this._base64ToBlob(base64)); }
+    else { await LocalMedia.saveImage(id, base64); }
+  },
+  async get(id) {
+    if (USE_CLOUD) return this._storageUrl(id);
+    return LocalMedia.getImage(id);
+  },
+  async delete(id) {
+    if (USE_CLOUD) { await this._deleteFile(id); }
+    else { await LocalMedia.deleteImage(id); }
+  },
+  async getAll(ids) {
+    if (!ids || !ids.length) return [];
+    const results = [];
+    for (const id of ids) { const data = await this.get(id); if (data) results.push({ id, data }); }
+    return results;
+  },
+  async clearAll() {
+    if (USE_CLOUD) return; // 云端不批量清理（否则需逐文件删）
+    indexedDB.deleteDatabase('drone_imgs'); // 本地模式清空整个 IndexedDB
+  },
+  async saveVideo(id, arrayBuffer, thumb) {
+    if (USE_CLOUD) {
+      const videoBlob = new Blob([arrayBuffer], { type: 'video/mp4' });
+      await this._upload(id, videoBlob);
+      if (thumb) await this._upload(id + '_thumb', this._base64ToBlob(thumb));
+    } else { await LocalMedia.saveVideo(id, arrayBuffer, thumb); }
+  },
+  async getVideo(id) {
+    if (USE_CLOUD) { return { data: this._storageUrl(id), thumb: this._storageUrl(id + '_thumb') }; }
+    const item = await LocalMedia.getVideo(id);
+    if (!item || !item.data) return null;
+    const blob = new Blob([item.data], { type: 'video/mp4' });
+    return { url: URL.createObjectURL(blob), thumb: item.thumb };
+  },
+  async getAllVideos(ids) {
+    if (!ids || !ids.length) return [];
+    const results = [];
+    for (const id of ids) { const item = await this.getVideo(id); if (item) results.push(item); }
+    return results;
+  },
+  async deleteVideo(id) {
+    if (USE_CLOUD) {
+      await this._deleteFile(id).catch(()=>{});
+      await this._deleteFile(id + '_thumb').catch(()=>{});
+    } else { await LocalMedia.deleteVideo(id); }
+  },
+  async clearVideos() { if (USE_CLOUD) return; } // 本地模式通过 IndexedDB 删除
+};
+
+// Image compression utility
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 1200;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ==================== UTILS ====================
+const U = {
+  fmt(n) { return n == null || isNaN(n) ? '0' : Number(n).toLocaleString() },
+  today() { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') },
+  fmtDate(d) { if (!d) return ''; const dt = new Date(d); return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0') },
+  fmtDuration(m) { if (!m || m <= 0) return '0分钟'; const h = Math.floor(m/60); const mm = m%60; return h ? `${h}小时${mm}分钟` : `${mm}分钟`; },
+  getDateRange(type, customStart, customEnd) {
+    const now = new Date(); const end = this.today(); let start;
+    switch(type) {
+      case 'today': start = end; break;
+      case 'week': const d = new Date(now); d.setDate(d.getDate()-6); start = this.fmtDate(d); break;
+      case 'month': start = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01'; break;
+      case 'quarter': const qm = Math.floor(now.getMonth()/3)*3+1; start = now.getFullYear()+'-'+String(qm).padStart(2,'0')+'-01'; break;
+      case 'year': start = now.getFullYear()+'-01-01'; break;
+      case 'custom': return { start: customStart || '2000-01-01', end: customEnd || this.today() };
+      default: start = '2000-01-01';
+    }
+    return { start, end };
+  },
+  filterByDate(list, dateField, range, cs, ce) {
+    const {start,end} = this.getDateRange(range, cs, ce);
+    return list.filter(i => (i[dateField]||'') >= start && (i[dateField]||'') <= end);
+  },
+  statusMap: {
+    active: { label: '执勤中', cls: 'tag-success' },
+    maintenance: { label: '维护中', cls: 'tag-warning' },
+    repair: { label: '维修中', cls: 'tag-danger' },
+    idle: { label: '待命', cls: 'tag-info' },
+    scrapped: { label: '已报废', cls: 'tag-default' }
+  },
+  getStatus(s) { return this.statusMap[s] || { label: s||'未知', cls: 'tag-default' }; },
+  achTypeMap: { violation:'查获违法', accident:'协助事故处理', patrol:'路面巡查', surveillance:'交通监控', rescue:'应急救援', evidence:'证据固定', other:'其他' },
+  getAchType(t) { return this.achTypeMap[t] || t || '未知'; }
+};
+
+// ==================== GLOBAL STATE ====================
+let currentTab = 'home';
+let deviceStatusFilter = '';
+let deviceDeptFilter = '';
+let pilotDeptFilter = '';
+let homeDateFilter = 'month';
+let homeCustomStart = '';
+let homeCustomEnd = '';
+let missionDateFilter = 'month';
+let achDateFilter = 'month';
+let editingId = null;
+let modalCallback = null;
+let trendChart = null;
+let _pendingImages = [];      // 战中表单暂存图片 base64
+let _pendingVideos = [];      // 战中表单暂存视频 {data, thumb, dur}
+let _previewImgs = [];        // 全屏预览列表
+let _previewIdx = 0;          // 当前预览索引
+
+// ==================== NAVIGATION ====================
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('#tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.page === tab));
+  document.querySelectorAll('#page-home,#page-devices,#page-pilots,#page-missions,#page-achievements,#page-settings').forEach(p => p.classList.remove('active'));
+  const page = document.getElementById('page-' + tab);
+  if (page) page.classList.add('active');
+
+  if (tab === 'home') renderHome();
+  else if (tab === 'devices') { populateDeviceDepts(); renderDevices(); }
+  else if (tab === 'pilots') { populatePilotDepts(); renderPilots(); }
+  else if (tab === 'missions') renderMissions();
+  else if (tab === 'achievements') renderAchievements();
+  else if (tab === 'settings') renderSettings();
+}
+
+// ==================== HOME ====================
+function renderHome() {
+  const drones = LS.get('drones');
+  const pilots = LS.get('pilots');
+  const allMissions = LS.get('missions');
+  const allAch = LS.get('achievements');
+  const missions = U.filterByDate(allMissions, 'date', homeDateFilter, homeCustomStart, homeCustomEnd);
+  const ach = U.filterByDate(allAch, 'date', homeDateFilter, homeCustomStart, homeCustomEnd);
+
+  let totalMin = 0, totalDist = 0; missions.forEach(m => { if (m.duration) totalMin += Number(m.duration); if (m.distance) totalDist += Number(m.distance); });
+
+  document.getElementById('homeStats').innerHTML = `
+    <div class="stat-card" onclick="switchTab('devices')"><div class="num">${drones.length}</div><div class="lbl">无人机设备</div></div>
+    <div class="stat-card" onclick="switchTab('pilots')"><div class="num">${pilots.length}</div><div class="lbl">持证驾驶员</div></div>
+    <div class="stat-card" onclick="switchTab('missions')"><div class="num">${missions.length}</div><div class="lbl">飞行任务</div></div>
+    <div class="stat-card" onclick="switchTab('achievements')"><div class="num">${ach.length}</div><div class="lbl">战果记录</div></div>
+    <div class="stat-card highlight"><div class="num">${(totalMin/60).toFixed(1)}h</div><div class="lbl">累计飞行时长</div></div>
+    <div class="stat-card highlight"><div class="num">${totalDist.toFixed(1)}km</div><div class="lbl">累计飞行里程</div></div>
+  `;
+
+  // 设备状态概览
+  const statusCount = {}; drones.forEach(d => { const s = d.status || 'idle'; statusCount[s] = (statusCount[s]||0)+1; });
+  const segClass = { active:'seg-active', idle:'seg-idle', maintenance:'seg-maintenance', repair:'seg-repair', scrapped:'seg-scrapped' };
+  let statusHTML = '<div class="card-title">设备状态概览</div><div class="status-bar">';
+  for (const [s, n] of Object.entries(statusCount)) {
+    statusHTML += `<div class="status-seg ${segClass[s]||''}" style="flex:${n}"><span class="cnt">${n}</span><span>${U.getStatus(s).label}</span></div>`;
+  }
+  statusHTML += '</div>';
+  document.getElementById('droneStatusCard').innerHTML = drones.length ? statusHTML : '';
+
+  // 无人机飞行排名 TOP3
+  const droneStats = drones.map(d => {
+    const dm = missions.filter(m => m.droneId === d.id);
+    const dh = dm.reduce((s,m) => s+(Number(m.duration)||0), 0);
+    const dkm = dm.reduce((s,m) => s+(Number(m.distance)||0), 0);
+    return { name: d.name, flights: dm.length, hours: dh/60, km: dkm };
+  }).filter(d => d.flights > 0).sort((a,b) => b.hours - a.hours).slice(0, 3);
+  let drHTML = '<div class="card-title">🏆 机巢飞行 TOP3</div>';
+  if (droneStats.length) {
+    droneStats.forEach((d,i) => {
+      const m = ['🥇','🥈','🥉'][i];
+      drHTML += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px"><span>${m} ${d.name}</span><span style="color:var(--text2)">${d.flights}次 · ${d.hours.toFixed(1)}h · ${d.km.toFixed(1)}km</span></div>`;
+    });
+  } else { drHTML += '<div style="font-size:13px;color:var(--text2)">暂无飞行数据</div>'; }
+  document.getElementById('droneRankCard').innerHTML = drHTML;
+
+  // 飞手飞行排名 TOP5
+  const pilotStats = pilots.map(p => {
+    const pm = missions.filter(m => m.pilotId === p.id);
+    const ph = pm.reduce((s,m) => s+(Number(m.duration)||0), 0);
+    const pkm = pm.reduce((s,m) => s+(Number(m.distance)||0), 0);
+    return { name: p.name, flights: pm.length, hours: ph/60, km: pkm };
+  }).filter(p => p.flights > 0).sort((a,b) => b.hours - a.hours).slice(0, 5);
+  let prHTML = '<div class="card-title">🏅 飞手排名 TOP5</div>';
+  if (pilotStats.length) {
+    pilotStats.forEach((p,i) => {
+      const m = ['🥇','🥈','🥉','④','⑤'][i];
+      prHTML += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px"><span>${m} ${p.name}</span><span style="color:var(--text2)">${p.flights}次 · ${p.hours.toFixed(1)}h · ${p.km.toFixed(1)}km</span></div>`;
+    });
+  } else { prHTML += '<div style="font-size:13px;color:var(--text2)">暂无飞行数据</div>'; }
+  document.getElementById('pilotRankCard').innerHTML = prHTML;
+
+  // 最近任务
+  const recent = [...missions].sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0,5);
+  let rHTML = '<div class="card-title">最近飞行任务</div>';
+  if (recent.length) {
+    recent.forEach(m => {
+      rHTML += `<div style="padding:10px 0;border-bottom:1px solid #eee"><div style="display:flex;gap:8px;align-items:center"><strong style="color:var(--primary);font-size:13px">${m.date||''}</strong><span style="color:var(--accent);font-size:12px">飞行${m.duration||0}分钟</span>${m.distance?`<span style="font-size:12px;color:var(--text2)">${m.distance}km</span>`:''}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${m.purpose||'无备注'}</div></div>`;
+    });
+  } else { rHTML += '<div class="empty"><div>暂无飞行任务</div></div>'; }
+  document.getElementById('recentMissionsCard').innerHTML = rHTML;
+
+  // 本月战果
+  const monthRange = U.getDateRange('month');
+  const monthAch = ach.filter(a => a.date >= monthRange.start && a.date <= monthRange.end);
+  let aHTML = '<div class="card-title">本月战果速览</div>';
+  if (monthAch.length) {
+    monthAch.forEach(a => { aHTML += `<div style="padding:8px 0;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;font-size:13px"><span class="tag tag-info">${U.getAchType(a.type)}</span><span style="flex:1">${a.description||''}</span>${a.images&&a.images.length?`<span class="photo-count" style="cursor:pointer" onclick="event.stopPropagation();viewAchMedia('${a.id}')">📸${a.images.length}</span>`:''}${a.videos&&a.videos.length?`<span class="video-count" style="cursor:pointer" onclick="event.stopPropagation();viewAchMedia('${a.id}')">🎬${a.videos.length}</span>`:''}<span style="color:var(--text2);font-size:12px">${a.date}</span></div>`; });
+  } else { aHTML += '<div class="empty"><div>本月暂无战果</div></div>'; }
+  document.getElementById('monthAchCard').innerHTML = aHTML;
+
+  // 维护提醒（未来30天内到期）
+  const maintList = LS.get('maintenance');
+  const now = new Date();
+  const deadline = new Date(); deadline.setDate(deadline.getDate() + 30);
+  const nowStr = U.fmtDate(now), deadlineStr = U.fmtDate(deadline);
+  const upcomingMaint = maintList.filter(m => m.nextDate && m.nextDate >= nowStr && m.nextDate <= deadlineStr).sort((a,b) => (a.nextDate||'').localeCompare(b.nextDate||''));
+  let mHTML = '<div class="card-title">🔧 维护提醒</div>';
+  if (upcomingMaint.length) {
+    upcomingMaint.forEach(m => { mHTML += `<div style="padding:8px 0;border-bottom:1px solid #eee;font-size:13px;display:flex;justify-content:space-between"><span>🚁 ${m.droneName||'未知'}</span><span>${m.type||'维护'} → ${m.nextDate}</span></div>`; });
+  } else {
+    mHTML += '<div style="font-size:13px;color:var(--success)">✅ 近期无即将到期的维护</div>';
+  }
+  document.getElementById('droneStatusCard').innerHTML += '<hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">' + mHTML;
+}
+
+// ==================== DEPT FILTER HELPERS ====================
+function populateDeviceDepts() {
+  const drones = LS.get('drones');
+  const depts = new Set();
+  drones.forEach(d => {
+    const m = d.remark ? d.remark.match(/所属大队[：:]\s*(\S+)/) : null;
+    if (m) depts.add(m[1]);
+  });
+  const sel = document.getElementById('deviceDeptSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">全部大队</option>' + [...depts].sort().map(d => `<option value="${d}">${d}大队</option>`).join('');
+  sel.value = deviceDeptFilter || '';
+}
+
+function populatePilotDepts() {
+  const pilots = LS.get('pilots');
+  const depts = new Set();
+  pilots.forEach(p => { if (p.dept) depts.add(p.dept); });
+  const sel = document.getElementById('pilotDeptSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">全部大队</option>' + [...depts].sort().map(d => `<option value="${d}">${d}</option>`).join('');
+  sel.value = pilotDeptFilter || '';
+}
+
+// ==================== DEVICES ====================
+function filterDevices(status, el) {
+  deviceStatusFilter = status;
+  document.querySelectorAll('#deviceFilters .filter').forEach(f => f.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderDevices();
+}
+
+function renderDevices() {
+  let list = LS.get('drones');
+  const kw = (document.getElementById('deviceSearch')?.value || '').toLowerCase();
+  if (kw) list = list.filter(d => (d.name||'').toLowerCase().includes(kw) || (d.model||'').toLowerCase().includes(kw) || (d.sn||'').toLowerCase().includes(kw));
+  if (deviceStatusFilter) list = list.filter(d => d.status === deviceStatusFilter);
+  if (deviceDeptFilter) list = list.filter(d => { const m = d.remark ? d.remark.match(/所属大队[：:]\s*(\S+)/) : null; return m && m[1] === deviceDeptFilter; });
+  list.sort((a,b) => (b.createTime||'').localeCompare(a.createTime||''));
+
+  let html = '';
+  if (!list.length) { html = '<div class="empty"><div class="icon">🚁</div><div>暂无设备数据</div><div style="font-size:12px;color:#999">点击右下角 + 添加设备</div></div>'; }
+  else {
+    const missions = LS.get('missions');
+    list.forEach(d => {
+      const st = U.getStatus(d.status);
+      const dMissions = missions.filter(m => m.droneId === d.id);
+      const dMin = dMissions.reduce((s,m) => s+(Number(m.duration)||0), 0);
+      const dKm = dMissions.reduce((s,m) => s+(Number(m.distance)||0), 0);
+      html += `<div class="list-item" onclick="openDeviceDetail('${d.id}')">
+        <div class="top"><span class="name">${d.name||'未命名'}</span><span class="tag ${st.cls}">${st.label}</span></div>
+        <div class="meta">${d.model?`<span>型号：${d.model}</span>`:''}${d.sn?`<span>编号：${d.sn}</span>`:''}${d.buyDate?`<span>购入：${d.buyDate}</span>`:''}
+        ${dMissions.length>0?`<span>🛩️ ${dMissions.length}次 · ${(dMin/60).toFixed(1)}h · ${dKm.toFixed(1)}km</span>`:''}</div>
+        <div class="actions">
+          <a onclick="event.stopPropagation();openDeviceForm('${d.id}')">编辑</a>
+          <a class="danger" onclick="event.stopPropagation();deleteDevice('${d.id}')">删除</a>
+        </div>
+      </div>`;
+    });
+  }
+  document.getElementById('deviceList').innerHTML = html;
+}
+
+function openDeviceDetail(id) {
+  switchTab('devices');
+  openDeviceForm(id);
+}
+
+function openDeviceForm(id) {
+  editingId = id || null;
+  const d = id ? LS.getById('drones', id) : {};
+  const formHTML = `
+    <div class="form-group"><label class="form-label">设备名称 *</label><input class="form-input" id="f_d_name" value="${d.name||''}" placeholder="如：大疆M300-01"></div>
+    <div class="form-group"><label class="form-label">设备型号</label><input class="form-input" id="f_d_model" value="${d.model||''}" placeholder="如：DJI Matrice 300 RTK"></div>
+    <div class="form-group"><label class="form-label">序列号/编号</label><input class="form-input" id="f_d_sn" value="${d.sn||''}" placeholder="设备序列号或内部编号"></div>
+    <div class="form-group"><label class="form-label">购买日期</label><input class="form-input" type="date" id="f_d_buyDate" value="${d.buyDate||''}"></div>
+    <div class="form-group"><label class="form-label">设备状态</label>
+      <div class="status-selector">${['active','idle','maintenance','repair','scrapped'].map(s => `<span class="ss-item ${(d.status||'idle')===s?'active':''}" onclick="this.parentElement.querySelectorAll('.ss-item').forEach(e=>e.classList.remove('active'));this.classList.add('active')">${U.getStatus(s).label}</span>`).join('')}</div>
+    </div>
+    <div class="form-group"><label class="form-label">电池编号</label><input class="form-input" id="f_d_battery" value="${d.battery||''}" placeholder="电池编号/型号"></div>
+    <div class="form-group"><label class="form-label">最大续航（分钟）</label><input class="form-input" type="number" id="f_d_maxFlight" value="${d.maxFlight||''}" placeholder="如：55"></div>
+    <div class="form-group"><label class="form-label">相机/载荷</label><input class="form-input" id="f_d_camera" value="${d.camera||''}" placeholder="如：H20T 热成像"></div>
+    <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="f_d_remark">${d.remark||''}</textarea></div>
+  `;
+  showModal(id ? '编辑设备' : '添加设备', formHTML, [
+    { text: '取消', cls: 'btn-outline', action: closeModal },
+    { text: '保存', cls: 'btn-primary', action: saveDevice }
+  ]);
+  
+  // 设备详情模式：同时显示维护记录和飞行任务
+  if (id) {
+    const maintList = LS.query('maintenance', m => m.droneId === id).sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const missList = LS.query('missions', m => m.droneId === id).sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    let extraHTML = '<hr style="margin:16px 0;border:none;border-top:1px solid var(--border)"><div class="card-title">关联数据</div>';
+    extraHTML += `<p style="font-size:13px;color:var(--text2);margin-bottom:8px">📋 维护记录：${maintList.length}条 | 🛩️ 飞行任务：${missList.length}条</p>`;
+    // 最近维护
+    if (maintList.length) {
+      extraHTML += '<p style="font-size:12px;color:var(--text2);margin-top:4px">最近维护：';
+      maintList.slice(0,3).forEach(m => { extraHTML += `<span style="margin-right:8px">${m.date} ${m.type||''}</span>`; });
+      extraHTML += '</p>';
+    }
+    // 最近任务
+    if (missList.length) {
+      extraHTML += '<p style="font-size:12px;color:var(--text2);margin-top:2px">最近任务：';
+      missList.slice(0,3).forEach(m => { extraHTML += `<span style="margin-right:8px">${m.date} ${U.fmtDuration(m.duration)}</span>`; });
+      extraHTML += '</p>';
+    }
+    document.getElementById('modalBody').innerHTML = formHTML + extraHTML;
+  }
+}
+
+function saveDevice() {
+  const data = {
+    name: document.getElementById('f_d_name')?.value || '',
+    model: document.getElementById('f_d_model')?.value || '',
+    sn: document.getElementById('f_d_sn')?.value || '',
+    buyDate: document.getElementById('f_d_buyDate')?.value || '',
+    status: document.querySelector('#modalBody .ss-item.active')?.textContent ? Object.keys(U.statusMap).find(k => U.statusMap[k].label === document.querySelector('#modalBody .ss-item.active')?.textContent) || 'idle' : 'idle',
+    battery: document.getElementById('f_d_battery')?.value || '',
+    maxFlight: document.getElementById('f_d_maxFlight')?.value || '',
+    camera: document.getElementById('f_d_camera')?.value || '',
+    remark: document.getElementById('f_d_remark')?.value || ''
+  };
+  if (!data.name.trim()) { alert('请输入设备名称'); return; }
+  if (editingId) { LS.update('drones', editingId, data); }
+  else { LS.add('drones', data); }
+  closeModal();
+  renderDevices();
+}
+
+function deleteDevice(id) {
+  if (!confirm('确认删除该设备？')) return;
+  LS.delete('drones', id);
+  renderDevices();
+}
+
+// ==================== PILOTS ====================
+function renderPilots() {
+  let list = LS.get('pilots');
+  const missions = LS.get('missions');
+  if (pilotDeptFilter) list = list.filter(p => p.dept === pilotDeptFilter);
+  list.sort((a,b) => (b.createTime||'').localeCompare(a.createTime||''));
+
+  // 驾驶员飞行排名 TOP5
+  let rankHTML = '';
+  const ranked = list.map(p => {
+    const pm = missions.filter(m => m.pilotId === p.id);
+    return { ...p, flights: pm.length, hours: pm.reduce((s,m)=>s+(Number(m.duration)||0), 0)/60, km: pm.reduce((s,m)=>s+(Number(m.distance)||0), 0) };
+  }).filter(p => p.flights > 0).sort((a,b) => b.hours - a.hours).slice(0, 5);
+  if (ranked.length) {
+    rankHTML = '<div class="card" style="margin-bottom:12px"><div class="card-title">🏅 飞行时长 TOP5</div>';
+    ranked.forEach((p,i) => {
+      const medals = ['🥇','🥈','🥉','④','⑤'];
+      rankHTML += `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:13px"><span>${medals[i]} ${p.name}</span><span style="color:var(--text2)">${p.hours.toFixed(1)}h · ${p.flights}次 · ${p.km.toFixed(1)}km</span></div>`;
+    });
+    rankHTML += '</div>';
+  }
+
+  let html = rankHTML;
+  if (!list.length) { html = '<div class="empty"><div class="icon">👨‍✈️</div><div>暂无驾驶员信息</div></div>'; }
+  else {
+    list.forEach(p => {
+      const pMissions = missions.filter(m => m.pilotId === p.id);
+      const totalMin = pMissions.reduce((s,m) => s + (Number(m.duration)||0), 0);
+      const totalDist = pMissions.reduce((s,m) => s + (Number(m.distance)||0), 0);
+      html += `<div class="list-item" onclick="openPilotForm('${p.id}')">
+        <div class="top"><span class="name">${p.name||'未知'}</span><span class="tag tag-info">${p.certType||'-'}</span></div>
+        <div class="meta"><span>🕐 ${(totalMin/60).toFixed(1)}h</span><span>🛣 ${totalDist.toFixed(1)}km</span><span>📋 ${pMissions.length}次</span>${p.dept?`<span>${p.dept}</span>`:''}${p.phone?`<span>📞 ${p.phone}</span>`:''}</div>
+        ${p.certNo?`<div style="font-size:11px;color:var(--text2);margin-top:4px">证书：${p.certNo} | 有效期：${p.certExpire||'未设置'}</div>`:''}
+        <div class="actions"><a onclick="event.stopPropagation();openPilotForm('${p.id}')">编辑</a><a class="danger" onclick="event.stopPropagation();deletePilot('${p.id}')">删除</a></div>
+      </div>`;
+    });
+  }
+  document.getElementById('pilotList').innerHTML = html;
+}
+
+function openPilotForm(id) {
+  editingId = id || null;
+  const p = id ? LS.getById('pilots', id) : {};
+  const formHTML = `
+    <div class="form-group"><label class="form-label">姓名 *</label><input class="form-input" id="f_p_name" value="${p.name||''}" placeholder="姓名"></div>
+    <div class="form-group"><label class="form-label">电话</label><input class="form-input" type="tel" id="f_p_phone" value="${p.phone||''}" placeholder="手机号"></div>
+    <div class="form-group"><label class="form-label">资质类型</label>
+      <div class="status-selector">${['CAAC','AOPA','UTC','ASFC','其他'].map(t => `<span class="ss-item ${(p.certType||'CAAC')===t?'active':''}" onclick="this.parentElement.querySelectorAll('.ss-item').forEach(e=>e.classList.remove('active'));this.classList.add('active')">${t}</span>`).join('')}</div>
+    </div>
+    <div class="form-group"><label class="form-label">证书编号</label><input class="form-input" id="f_p_certNo" value="${p.certNo||''}" placeholder="资质证书编号"></div>
+    <div class="form-group"><label class="form-label">证书有效期</label><input class="form-input" type="date" id="f_p_certExpire" value="${p.certExpire||''}"></div>
+    <div class="form-group"><label class="form-label">部门</label><input class="form-input" id="f_p_dept" value="${p.dept||''}" placeholder="所属部门/大队"></div>
+    <div class="form-group"><label class="form-label">职务</label><input class="form-input" id="f_p_position" value="${p.position||''}" placeholder="职务"></div>
+    <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="f_p_remark">${p.remark||''}</textarea></div>
+  `;
+  showModal(id ? '编辑驾驶员' : '添加驾驶员', formHTML, [
+    { text: '取消', cls: 'btn-outline', action: closeModal },
+    { text: '保存', cls: 'btn-primary', action: savePilot }
+  ]);
+}
+
+function savePilot() {
+  const data = {
+    name: document.getElementById('f_p_name')?.value || '',
+    phone: document.getElementById('f_p_phone')?.value || '',
+    certType: document.querySelector('#modalBody .ss-item.active')?.textContent || 'CAAC',
+    certNo: document.getElementById('f_p_certNo')?.value || '',
+    certExpire: document.getElementById('f_p_certExpire')?.value || '',
+    dept: document.getElementById('f_p_dept')?.value || '',
+    position: document.getElementById('f_p_position')?.value || '',
+    remark: document.getElementById('f_p_remark')?.value || ''
+  };
+  if (!data.name.trim()) { alert('请输入姓名'); return; }
+  if (editingId) { LS.update('pilots', editingId, data); }
+  else { LS.add('pilots', data); }
+  closeModal();
+  renderPilots();
+}
+
+function deletePilot(id) {
+  if (!confirm('确认删除该驾驶员？')) return;
+  LS.delete('pilots', id);
+  renderPilots();
+}
+
+// ==================== MISSIONS ====================
+function filterHome(type, el) {
+  homeDateFilter = type; homeCustomStart = ''; homeCustomEnd = '';
+  document.querySelectorAll('#homeFilters .filter').forEach(f => f.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('customStart').value = '';
+  document.getElementById('customEnd').value = '';
+  renderHome();
+}
+
+function applyCustomRange() {
+  const s = document.getElementById('customStart').value;
+  const e = document.getElementById('customEnd').value;
+  if (!s && !e) { alert('请选择日期范围'); return; }
+  homeDateFilter = 'custom'; homeCustomStart = s || ''; homeCustomEnd = e || '';
+  document.querySelectorAll('#homeFilters .filter').forEach(f => f.classList.remove('active'));
+  renderHome();
+}
+
+function resetCustomRange() {
+  document.getElementById('customStart').value = '';
+  document.getElementById('customEnd').value = '';
+  homeCustomStart = ''; homeCustomEnd = '';
+  filterHome('month', document.querySelector('#homeFilters .filter:first-child'));
+}
+
+function filterMissions(type, el) {
+  missionDateFilter = type;
+  document.querySelectorAll('#missionFilters .filter').forEach(f => f.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderMissions();
+}
+
+function renderMissions() {
+  let list = LS.get('missions');
+  list = U.filterByDate(list, 'date', missionDateFilter);
+  list.sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.startTime||'').localeCompare(a.startTime||''));
+  let html = '';
+  if (!list.length) { html = '<div class="empty"><div class="icon">🛩️</div><div>暂无飞行任务</div></div>'; }
+  else {
+    let totalMin = 0;
+    list.forEach(m => {
+      totalMin += Number(m.duration) || 0;
+      html += `<div class="list-item" onclick="openMissionForm('${m.id}')">
+        <div class="top"><span style="font-weight:600;color:var(--primary);font-size:14px">${m.date||''}</span><span style="color:var(--accent);font-size:13px">飞行${m.duration||0}分钟${m.distance?` · ${m.distance}km`:''}</span></div>
+        <div class="meta"><span>🚁 ${m.droneName||'未知设备'}</span><span>👨‍✈️ ${m.pilotName||'未知'}</span>${m.location?`<span>📍 ${m.location}</span>`:''}</div>
+        ${m.weather?`<div style="font-size:12px;color:var(--info);margin-top:2px">🌤 ${m.weather}</div>`:''}
+        ${m.purpose?`<div style="font-size:13px;color:var(--text);margin-top:4px">任务：${m.purpose}</div>`:''}
+        ${m.result?`<div style="font-size:12px;color:var(--success);margin-top:2px">结果：${m.result}</div>`:''}
+        <div class="actions"><a onclick="event.stopPropagation();openMissionForm('${m.id}')">编辑</a><a class="danger" onclick="event.stopPropagation();deleteMission('${m.id}')">删除</a></div>
+      </div>`;
+    });
+    html = `<div style="font-size:13px;color:var(--text2);margin-bottom:10px">共 ${list.length} 条任务，累计飞行 ${U.fmtDuration(totalMin)}</div>` + html;
+  }
+  document.getElementById('missionList').innerHTML = html;
+}
+
+function openMissionForm(id) {
+  editingId = id || null;
+  const m = id ? LS.getById('missions', id) : {};
+  const drones = LS.get('drones');
+  const pilots = LS.get('pilots');
+  const formHTML = `
+    <div class="form-group"><label class="form-label">飞行日期 *</label><input class="form-input" type="date" id="f_m_date" value="${m.date||U.today()}"></div>
+    <div class="form-group"><label class="form-label">无人机设备 *</label>
+      <select class="form-select" id="f_m_droneId">${drones.map(d => `<option value="${d.id}" ${m.droneId===d.id?'selected':''}>${d.name||'未命名'}</option>`).join('')}${!drones.length?'<option>请先添加设备</option>':''}</select></div>
+    <div class="form-group"><label class="form-label">驾驶员 *</label>
+      <select class="form-select" id="f_m_pilotId">${pilots.map(p => `<option value="${p.id}" ${m.pilotId===p.id?'selected':''}>${p.name||'未知'}</option>`).join('')}${!pilots.length?'<option>请先添加驾驶员</option>':''}</select></div>
+    <div class="form-group"><label class="form-label">开始时间</label><input class="form-input" type="time" id="f_m_startTime" value="${m.startTime||''}" placeholder="如：09:00" onchange="calcDuration()"></div>
+    <div class="form-group"><label class="form-label">结束时间</label><input class="form-input" type="time" id="f_m_endTime" value="${m.endTime||''}" placeholder="如：10:30" onchange="calcDuration()"></div>
+    <div class="form-group"><label class="form-label">飞行时长（分钟）</label><input class="form-input" type="number" id="f_m_duration" value="${m.duration||''}" placeholder="自动计算" readonly style="background:#f5f5f5"></div>
+    <div class="form-group"><label class="form-label">飞行地点</label><input class="form-input" id="f_m_location" value="${m.location||''}" placeholder="如：G65包茂高速怀化段"></div>
+    <div class="form-group"><label class="form-label">任务目的</label><input class="form-input" id="f_m_purpose" value="${m.purpose||''}" placeholder="如：路面巡查、事故勘察"></div>
+    <div class="form-group"><label class="form-label">任务结果</label><textarea class="form-textarea" id="f_m_result">${m.result||''}</textarea></div>
+    <div class="form-group"><label class="form-label">天气状况</label><input class="form-input" id="f_m_weather" value="${m.weather||''}" placeholder="如：晴"></div>
+    <div class="form-group"><label class="form-label">飞行里程（公里）</label><input class="form-input" type="number" step="0.1" id="f_m_distance" value="${m.distance||''}" placeholder="如：15.5"></div>
+    <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="f_m_remark">${m.remark||''}</textarea></div>
+  `;
+  showModal(id ? '编辑飞行任务' : '新建飞行任务', formHTML, [
+    { text: '取消', cls: 'btn-outline', action: closeModal },
+    { text: '保存', cls: 'btn-primary', action: saveMission }
+  ]);
+}
+
+function calcDuration() {
+  const start = document.getElementById('f_m_startTime')?.value;
+  const end = document.getElementById('f_m_endTime')?.value;
+  if (!start || !end) { document.getElementById('f_m_duration').value = ''; return; }
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  let minutes = (eh * 60 + em) - (sh * 60 + sm);
+  if (minutes < 0) minutes += 24 * 60; // 跨天
+  document.getElementById('f_m_duration').value = minutes > 0 ? minutes : 0;
+}
+
+function saveMission() {
+  const droneId = document.getElementById('f_m_droneId')?.value;
+  const pilotId = document.getElementById('f_m_pilotId')?.value;
+  const drone = LS.getById('drones', droneId);
+  const pilot = LS.getById('pilots', pilotId);
+  const data = {
+    droneId: droneId || '', droneName: drone ? drone.name : '',
+    pilotId: pilotId || '', pilotName: pilot ? pilot.name : '',
+    date: document.getElementById('f_m_date')?.value || '',
+    startTime: document.getElementById('f_m_startTime')?.value || '',
+    endTime: document.getElementById('f_m_endTime')?.value || '',
+    duration: Number(document.getElementById('f_m_duration')?.value) || 0,
+    location: document.getElementById('f_m_location')?.value || '',
+    purpose: document.getElementById('f_m_purpose')?.value || '',
+    result: document.getElementById('f_m_result')?.value || '',
+    weather: document.getElementById('f_m_weather')?.value || '',
+    distance: parseFloat(document.getElementById('f_m_distance')?.value) || 0,
+    remark: document.getElementById('f_m_remark')?.value || ''
+  };
+  if (!data.date) { alert('请选择日期'); return; }
+  if (!data.droneId) { alert('请选择无人机'); return; }
+  if (!data.pilotId) { alert('请选择驾驶员'); return; }
+  if (editingId) { LS.update('missions', editingId, data); }
+  else { LS.add('missions', data); }
+  closeModal();
+  renderMissions();
+  if (currentTab === 'home') renderHome();
+}
+
+function deleteMission(id) {
+  if (!confirm('确认删除该飞行任务？')) return;
+  LS.delete('missions', id);
+  renderMissions();
+}
+
+// ==================== ACHIEVEMENTS ====================
+function filterAch(type, el) {
+  achDateFilter = type;
+  document.querySelectorAll('#achFilters .filter').forEach(f => f.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderAchievements();
+}
+
+function renderAchievements() {
+  let list = LS.get('achievements');
+  list = U.filterByDate(list, 'date', achDateFilter);
+  list.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+  // 类型统计
+  const typeStats = {};
+  list.forEach(a => { const t = a.type||'other'; typeStats[t] = (typeStats[t]||0) + (Number(a.count)||1); });
+  const total = Object.values(typeStats).reduce((s,v) => s+v, 0);
+
+  // 总战果卡
+  document.getElementById('achTotalCard').innerHTML = `<div class="card" style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;text-align:center;padding:24px"><div style="font-size:48px;font-weight:700">${total}</div><div style="font-size:14px;opacity:.9;margin-top:4px">累计战果数</div></div>`;
+
+  // 类型统计条
+  let barsHTML = '';
+  for (const [k, v] of Object.entries(typeStats)) {
+    const pct = total ? Math.round(v/total*100) : 0;
+    barsHTML += `<div class="tb-item"><div class="tb-bar-wrap"><div class="tb-bar" style="width:${pct}%"></div></div><div class="tb-info"><span class="tb-label">${U.getAchType(k)}</span><span class="tb-count">${v} 条</span></div></div>`;
+  }
+  document.getElementById('achTypeBars').innerHTML = barsHTML || '<div class="empty"><div>暂无数据</div></div>';
+
+  // 趋势图
+  const trendData = {};
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    trendData[U.fmtDate(d)] = 0;
+  }
+  list.forEach(a => { if (trendData[a.date] !== undefined) trendData[a.date] += (Number(a.count)||1); });
+  const labels = Object.keys(trendData).map(d => d.substring(5));
+  const values = Object.values(trendData);
+
+  if (trendChart) trendChart.destroy();
+  const ctx = document.getElementById('achTrendChart');
+  if (ctx) {
+    trendChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: '战果数', data: values, backgroundColor: '#1a3a5c', borderRadius: 4 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: Math.max(1, Math.ceil(Math.max(...values, 1)/5)) } }, x: { ticks: { maxTicksLimit: 15, font: { size: 10 } } } }
+      }
+    });
+  }
+
+  // 明细列表
+  let listHTML = '';
+  if (!list.length) { listHTML = '<div class="empty"><div>暂无战果记录</div></div>'; }
+  else {
+    list.forEach(a => {
+      const hasImgs = a.images && a.images.length > 0;
+      const hasVids = a.videos && a.videos.length > 0;
+      listHTML += `<div style="padding:12px 0;border-bottom:1px solid #eee">
+        <div style="display:flex;justify-content:space-between;align-items:center"><strong style="color:var(--primary);font-size:13px">${a.date}</strong><span class="tag tag-info">${U.getAchType(a.type)}</span></div>
+        ${a.description?`<div style="font-size:13px;color:var(--text);margin:4px 0">${a.description}</div>`:''}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <span style="font-size:11px;color:var(--text2)">${a.droneName?'🚁 '+a.droneName:''} ${a.location?'📍 '+a.location:''}${hasImgs?` <span class="photo-count" style="cursor:pointer" onclick="event.stopPropagation();viewAchMedia('${a.id}')">📸 ${a.images.length}张</span>`:''}${hasVids?` <span class="video-count" style="cursor:pointer" onclick="event.stopPropagation();viewAchMedia('${a.id}')">🎬 ${a.videos.length}个</span>`:''}</span>
+          <span style="font-size:12px;color:var(--accent);font-weight:600">×${a.count||1}</span>
+        </div>
+        <div style="margin-top:6px"><a style="font-size:11px;color:var(--primary);cursor:pointer;margin-right:12px" onclick="openAchForm('${a.id}')">编辑</a><a style="font-size:11px;color:var(--danger);cursor:pointer" onclick="deleteAch('${a.id}')">删除</a></div>
+      </div>`;
+    });
+  }
+  document.getElementById('achList').innerHTML = listHTML;
+}
+
+function openAchForm(id) {
+  editingId = id || null;
+  _pendingImages = [];
+  _pendingVideos = [];
+  const a = id ? LS.getById('achievements', id) : {};
+  // 编辑时加载已有照片
+  if (id && a.images && a.images.length) {
+    ImgDB.getAll(a.images).then(imgs => {
+      _pendingImages = imgs.map((img, i) => ({ id: a.images[i], data: img.data }));
+      renderMediaGrid();
+    });
+  }
+  // 编辑时加载已有视频
+  if (id && a.videos && a.videos.length) {
+    ImgDB.getAllVideos(a.videos).then(vids => {
+      _pendingVideos = vids.map((v, i) => ({
+        id: a.videos[i], // 保留云端视频原有的ID
+        blobUrl: typeof v.data === 'string' ? v.data : URL.createObjectURL(new Blob([v.data], { type: 'video/mp4' })),
+        thumb: v.thumb || '', dur: 0
+      }));
+      renderMediaGrid();
+    });
+  }
+  const drones = LS.get('drones');
+  const types = ['violation','accident','patrol','surveillance','rescue','evidence','other'];
+  const formHTML = `
+    <div class="form-group"><label class="form-label">日期 *</label><input class="form-input" type="date" id="f_a_date" value="${a.date||U.today()}"></div>
+    <div class="form-group"><label class="form-label">战果类型</label>
+      <div class="status-selector">${types.map(t => `<span class="ss-item ${(a.type||'violation')===t?'active':''}" onclick="this.parentElement.querySelectorAll('.ss-item').forEach(e=>e.classList.remove('active'));this.classList.add('active')">${U.getAchType(t)}</span>`).join('')}</div>
+    </div>
+    <div class="form-group"><label class="form-label">关联设备</label>
+      <select class="form-select" id="f_a_droneId"><option value="">不关联</option>${drones.map(d => `<option value="${d.id}" ${a.droneId===d.id?'selected':''}>${d.name||'未命名'}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">数量</label><input class="form-input" type="number" id="f_a_count" value="${a.count||1}" min="1"></div>
+    <div class="form-group"><label class="form-label">详情描述</label><textarea class="form-textarea" id="f_a_description">${a.description||''}</textarea></div>
+    <div class="form-group"><label class="form-label">地点</label><input class="form-input" id="f_a_location" value="${a.location||''}" placeholder="如：G65怀化南出口"></div>
+    <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="f_a_remark">${a.remark||''}</textarea></div>
+    <div class="form-group photo-section">
+      <label class="form-label">📸📹 照片/视频 <span style="font-weight:normal;color:var(--text2);font-size:11px">（📷拍照选照片 | 🎬选视频 限10MB）</span></label>
+      <div class="photo-grid" id="photoGrid">
+        <div class="photo-add-area" onclick="pickPhoto()" title="添加照片">📷</div>
+        <div class="photo-add-area" onclick="pickVideo()" title="添加视频">🎬</div>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhotoSelect(this)">
+      <input type="file" id="videoInput" accept="video/*" style="display:none" onchange="handleVideoSelect(this)">
+    </div>
+  `;
+  showModal(id ? '编辑战果' : '添加战果', formHTML, [
+    { text: '取消', cls: 'btn-outline', action: closeModal },
+    { text: '保存', cls: 'btn-primary', action: saveAch }
+  ]);
+  // 延迟渲染已有媒体
+  setTimeout(() => renderMediaGrid(), 100);
+}
+
+async function saveAch() {
+  // 防止重复点击
+  const btn = document.querySelector('#modalFoot .btn-primary');
+  if (!btn) { renderAchievements(); closeModal(); return; }
+  if (btn.disabled) return;
+  btn.disabled = true; btn.textContent = '保存中...';
+
+  const droneId = document.getElementById('f_a_droneId')?.value;
+  const drone = LS.getById('drones', droneId);
+  const typeMap = { '查获违法': 'violation', '协助事故处理': 'accident', '路面巡查': 'patrol', '交通监控': 'surveillance', '应急救援': 'rescue', '证据固定': 'evidence', '其他': 'other' };
+  const typeText = document.querySelector('#modalBody .ss-item.active')?.textContent || '查获违法';
+  
+  if (!document.getElementById('f_a_date')?.value) { alert('请选择日期'); btn.disabled = false; btn.textContent = '保存'; return; }
+
+  // 保存图片
+  const imgIds = [];
+  for (const img of _pendingImages) {
+    // 已有ID（云端模式）跳过上传
+    if (img.id) { imgIds.push(img.id); continue; }
+    const imgId = 'img_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+    const base64 = img.data || img; // 兼容旧格式
+    try { await ImgDB.save(imgId, base64); imgIds.push(imgId); } catch(e) { console.error('保存图片失败', e); }
+  }
+
+  // 保存视频
+  const vidIds = [];
+  for (const v of _pendingVideos) {
+    if (v.id) { vidIds.push(v.id); continue; } // 已有ID无需重新上传
+    const vidId = 'vid_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+    try { await ImgDB.saveVideo(vidId, v.arrayBuffer, v.thumb); vidIds.push(vidId); } catch(e) { console.error('保存视频失败', e); }
+  }
+
+  const data = {
+    droneId: droneId || '', droneName: drone ? drone.name : '',
+    date: document.getElementById('f_a_date')?.value || '',
+    type: typeMap[typeText] || 'violation',
+    description: document.getElementById('f_a_description')?.value || '',
+    count: Number(document.getElementById('f_a_count')?.value) || 1,
+    location: document.getElementById('f_a_location')?.value || '',
+    remark: document.getElementById('f_a_remark')?.value || '',
+    images: imgIds,
+    videos: vidIds
+  };
+
+  // 编辑时删除旧图片/视频
+  if (editingId) {
+    const old = LS.getById('achievements', editingId);
+    if (old) {
+      if (old.images) for (const oldId of old.images) { if (!imgIds.includes(oldId)) { try { await ImgDB.delete(oldId); } catch(e) {} } }
+      if (old.videos) for (const oldId of old.videos) { if (!vidIds.includes(oldId)) { try { await ImgDB.deleteVideo(oldId); } catch(e) {} } }
+    }
+    LS.update('achievements', editingId, data);
+  } else {
+    LS.add('achievements', data);
+  }
+  closeModal();
+  renderAchievements();
+}
+
+async function deleteAch(id) {
+  if (!confirm('确认删除该战果记录？')) return;
+  const a = LS.getById('achievements', id);
+  if (a) {
+    if (a.images) for (const imgId of a.images) { try { await ImgDB.delete(imgId); } catch(e) {} }
+    if (a.videos) for (const vidId of a.videos) { try { await ImgDB.deleteVideo(vidId); } catch(e) {} }
+  }
+  LS.delete('achievements', id);
+  renderAchievements();
+}
+
+// ==================== PHOTO FUNCTIONS ====================
+function pickPhoto() {
+  document.getElementById('photoInput').click();
+}
+
+async function handlePhotoSelect(input) {
+  const files = input.files;
+  for (const file of files) {
+    if (_pendingImages.length >= 12) { alert('最多上传12张照片'); break; }
+    try {
+      const base64 = await compressImage(file);
+      _pendingImages.push(base64);
+    } catch(e) { console.error('压缩图片失败', e); }
+  }
+  input.value = '';
+  renderMediaGrid();
+}
+
+function renderPhotoGrid() {
+  renderMediaGrid();
+}
+
+function removePhoto(idx) {
+  _pendingImages.splice(idx, 1);
+  renderMediaGrid();
+}
+
+function previewPending(idx) {
+  _previewImgs = _pendingImages;
+  _previewIdx = idx;
+  showImgPreview();
+}
+
+// ==================== VIDEO FUNCTIONS ====================
+function extractVideoThumb(file) {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata'; video.muted = true; video.playsInline = true;
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    let done = false;
+    video.onloadeddata = () => { if (!done) { video.currentTime = 0.5; } };
+    video.onseeked = () => {
+      done = true;
+      const canvas = document.createElement('canvas');
+      canvas.width = 320; canvas.height = Math.round(320 * video.videoHeight / video.videoWidth) || 180;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.6));
+    };
+    video.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    // Timeout fallback
+    setTimeout(() => { if (!done) { URL.revokeObjectURL(url); resolve(null); } }, 5000);
+  });
+}
+
+function pickVideo() {
+  document.getElementById('videoInput').click();
+}
+
+async function handleVideoSelect(input) {
+  const files = input.files;
+  for (const file of files) {
+    if (_pendingVideos.length >= 5) { alert('最多上传5个视频'); break; }
+    if (file.size > 10 * 1024 * 1024) { alert(`视频「${file.name}」超过10MB限制，请压缩后上传`); continue; }
+    try {
+      // 读为 ArrayBuffer 存 IndexedDB（不用 base64，太大且播放不兼容）
+      const arrayBuffer = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsArrayBuffer(file);
+      });
+      const thumb = await extractVideoThumb(file);
+      const blobUrl = URL.createObjectURL(file);
+      const dur = await new Promise((resolve) => {
+        const v = document.createElement('video'); v.preload = 'metadata';
+        v.src = blobUrl;
+        v.onloadedmetadata = () => { resolve(Math.round(v.duration) || 0); };
+        v.onerror = () => { resolve(0); };
+      });
+      _pendingVideos.push({ arrayBuffer, thumb: thumb || '', dur, blobUrl });
+    } catch(e) { console.error('读取视频失败', e); }
+  }
+  input.value = '';
+  renderMediaGrid();
+}
+
+function removeVideo(idx) {
+  const v = _pendingVideos[idx];
+  if (v && v.blobUrl) URL.revokeObjectURL(v.blobUrl);
+  _pendingVideos.splice(idx, 1);
+  renderMediaGrid();
+}
+
+function previewVideo(idx) {
+  _previewImgs = _pendingVideos.map(v => ({ data: v.blobUrl || v.arrayBuffer, type: 'video' }));
+  _previewIdx = idx;
+  showImgPreview();
+}
+
+function formatDur(sec) {
+  if (!sec || sec <= 0) return '';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function renderMediaGrid() {
+  const grid = document.getElementById('photoGrid');
+  if (!grid) return;
+  let html = '';
+  // Photos
+  _pendingImages.forEach((img, i) => {
+    const src = img.data || img;
+    html += `<div class="photo-thumb" onclick="previewPending(${i})"><img src="${src}" alt="照片${i+1}"><span class="photo-del" onclick="event.stopPropagation();removePhoto(${i})">✕</span></div>`;
+  });
+  // Videos
+  _pendingVideos.forEach((v, i) => {
+    html += `<div class="video-thumb" onclick="previewVideo(${i})">
+      ${v.thumb ? `<img src="${v.thumb}" alt="视频${i+1}">` : '<div style="width:100%;height:100%;background:#333;display:flex;align-items:center;justify-content:center;font-size:20px">🎬</div>'}
+      <div class="play-icon">▶</div>
+      ${v.dur ? `<div class="video-dur">${formatDur(v.dur)}</div>` : ''}
+      <span class="video-del" onclick="event.stopPropagation();removeVideo(${i})">✕</span>
+    </div>`;
+  });
+  // Add buttons
+  if (_pendingImages.length + _pendingVideos.length < 12) {
+    html += '<div class="photo-add-area" onclick="pickPhoto()">📷</div>';
+    if (_pendingVideos.length < 5) html += '<div class="photo-add-area" onclick="pickVideo()">🎬</div>';
+  }
+  grid.innerHTML = html;
+}
+
+// ==================== IMAGE PREVIEW ====================
+function showImgPreview() {
+  if (!_previewImgs.length) return;
+  const el = document.getElementById('imgPreview');
+  const img = document.getElementById('imgPreviewImg');
+  const video = document.getElementById('imgPreviewVideo');
+  const counter = document.getElementById('imgCounter');
+  const item = _previewImgs[_previewIdx];
+  // Detect video or image
+  if (item && item.type === 'video') {
+    img.style.display = 'none';
+    video.style.display = 'block';
+    video.src = item.data;
+    video.load();
+  } else {
+    video.style.display = 'none';
+    video.pause();
+    img.style.display = 'block';
+    img.src = typeof item === 'string' ? item : (item && item.data ? item.data : '');
+  }
+  counter.textContent = `${_previewIdx + 1} / ${_previewImgs.length}`;
+  el.classList.remove('hidden');
+}
+
+function closeImgPreview() {
+  const video = document.getElementById('imgPreviewVideo');
+  if (video) { video.pause(); video.src = ''; }
+  document.getElementById('imgPreview').classList.add('hidden');
+}
+
+function navImgPreview(dir) {
+  _previewIdx = (_previewIdx + dir + _previewImgs.length) % _previewImgs.length;
+  showImgPreview();
+}
+
+async function viewAchMedia(achId) {
+  const a = LS.getById('achievements', achId);
+  if (!a) return;
+  const previewList = [];
+  // 加载图片
+  if (a.images && a.images.length) {
+    const imgs = await ImgDB.getAll(a.images);
+    previewList.push(...imgs.map(i => i.data));
+  }
+  // 加载视频
+  if (a.videos && a.videos.length) {
+    for (const vidId of a.videos) {
+      const v = await ImgDB.getVideo(vidId);
+      if (v && v.data) previewList.push({ data: v.data, type: 'video' });
+    }
+  }
+  if (!previewList.length) return;
+  _previewImgs = previewList;
+  _previewIdx = 0;
+  showImgPreview();
+}
+
+function renderSettings() {
+  const s = {
+    drones: LS.get('drones').length,
+    maintenance: LS.get('maintenance').length,
+    pilots: LS.get('pilots').length,
+    missions: LS.get('missions').length,
+    achievements: LS.get('achievements').length
+  };
+  document.getElementById('settingsStats').innerHTML = `<div class="stats">${Object.entries(s).map(([k,v]) => `<div class="stat-card"><div class="num">${v}</div><div class="lbl">${k==='drones'?'设备':k==='maintenance'?'维护记录':k==='pilots'?'驾驶员':k==='missions'?'飞行任务':'战果'}</div></div>`).join('')}</div>`;
+}
+
+function exportJSON() {
+  const data = {};
+  ['drones','maintenance','pilots','missions','achievements'].forEach(k => { data[k] = LS.get(k); });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  downloadFile(blob, `无人机数据备份_${U.today()}.json`);
+}
+
+function exportCSV() {
+  const data = {};
+  ['drones','maintenance','pilots','missions','achievements'].forEach(k => { data[k] = LS.get(k); });
+  const rows = [];
+  rows.push('=== 无人机设备台账 ===');
+  rows.push('名称,型号,编号,购入日期,状态,电池,续航,载荷,备注');
+  data.drones.forEach(d => rows.push(`"${d.name||''}","${d.model||''}","${d.sn||''}","${d.buyDate||''}","${d.status||''}","${d.battery||''}","${d.maxFlight||''}","${d.camera||''}","${d.remark||''}"`));
+  rows.push('\n=== 维护记录 ===');
+  rows.push('设备,日期,类型,描述,费用,下次维护');
+  data.maintenance.forEach(m => rows.push(`"${m.droneName||''}","${m.date||''}","${m.type||''}","${m.description||''}","${m.cost||''}","${m.nextDate||''}"`));
+  rows.push('\n=== 驾驶员 ===');
+  rows.push('姓名,电话,资质,证书号,有效期,部门,职务');
+  data.pilots.forEach(p => rows.push(`"${p.name||''}","${p.phone||''}","${p.certType||''}","${p.certNo||''}","${p.certExpire||''}","${p.dept||''}","${p.position||''}"`));
+  rows.push('\n=== 飞行任务 ===');
+  rows.push('日期,设备,驾驶员,开始,结束,时长(分),地点,目的,结果,天气');
+  data.missions.forEach(m => rows.push(`"${m.date||''}","${m.droneName||''}","${m.pilotName||''}","${m.startTime||''}","${m.endTime||''}","${m.duration||''}","${m.location||''}","${m.purpose||''}","${m.result||''}","${m.weather||''}"`));
+  rows.push('\n=== 战果记录 ===');
+  rows.push('日期,类型,设备,数量,描述,地点');
+  data.achievements.forEach(a => rows.push(`"${a.date||''}","${U.getAchType(a.type)||''}","${a.droneName||''}","${a.count||1}","${a.description||''}","${a.location||''}"`));
+
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + rows.join('\n')], { type: 'text/csv' });
+  downloadFile(blob, `无人机数据_${U.today()}.csv`);
+}
+
+function downloadFile(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function importFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    if (file.name.endsWith('.json')) {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      let count = 0;
+      ['drones','maintenance','pilots','missions','achievements'].forEach(k => {
+        if (data[k] && Array.isArray(data[k])) {
+          const existing = LS.get(k); const ids = new Set(existing.map(i => i.id));
+          const newItems = data[k].filter(i => !ids.has(i.id));
+          LS.set(k, [...existing, ...newItems]); count += newItems.length;
+        }
+      });
+      alert(`导入成功！新增 ${count} 条数据`);
+    } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      let count = 0;
+      for (const sheetName of wb.SheetNames) {
+        const ws = wb.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        if (!jsonData.length) continue;
+        const headers = jsonData[0];
+        const rows = jsonData.slice(1).filter(r => r.length > 0 && r.some(c => c));
+        rows.forEach(row => {
+          const item = {};
+          headers.forEach((h, i) => { if (h && row[i] !== undefined) item[h] = row[i]; });
+          if (Object.keys(item).length > 0) {
+            LS.add('drones', item); count++;
+          }
+        });
+      }
+      alert(`从Excel导入成功！新增 ${count} 条设备数据`);
+    }
+    renderDevices(); renderSettings();
+    if (currentTab === 'home') renderHome();
+  } catch(e) {
+    alert('导入失败：' + e.message);
+  }
+  input.value = '';
+}
+
+async function clearAllData() {
+  if (!confirm('⚠️ 危险操作\n\n将删除所有无人机设备、维护记录、驾驶员、飞行任务和战果数据（含照片），不可恢复！\n\n建议先导出备份。\n\n确定要清除吗？')) return;
+  if (!confirm('再次确认：清除所有数据？')) return;
+  ['drones','maintenance','pilots','missions','achievements'].forEach(k => LS.set(k, []));
+  try { await ImgDB.clearAll(); } catch(e) {}
+  alert('已清除全部数据');
+  renderSettings();
+  renderHome();
+}
+
+// ==================== MODAL ====================
+function showModal(title, bodyHTML, buttons) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHTML;
+  let footHTML = '';
+  buttons.forEach(b => { footHTML += `<button class="btn ${b.cls}" id="modalBtn_${b.text}">${b.text}</button>`; });
+  document.getElementById('modalFoot').innerHTML = footHTML;
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  // Bind buttons
+  buttons.forEach(b => {
+    const btn = document.getElementById('modalBtn_' + b.text);
+    if (btn) btn.onclick = b.action;
+  });
+  modalCallback = null;
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').classList.add('hidden');
+  editingId = null;
+  _pendingImages = [];
+  // 清理暂存视频的 blob URL
+  _pendingVideos.forEach(v => { if (v.blobUrl) URL.revokeObjectURL(v.blobUrl); });
+  _pendingVideos = [];
+}
+
+// ==================== SEED DATA ====================
+function seedData() {
+  const SEED_VER = 1;
+  if (localStorage.getItem('dr_seed_ver') === String(SEED_VER)) return;
+  if (LS.get('drones').length > 0) { localStorage.setItem('dr_seed_ver', String(SEED_VER)); return; }
+  
+  // 云端模式下不自动植入——等 syncFromCloud 从云端拉取
+  if (USE_CLOUD) { localStorage.setItem('dr_seed_ver', String(SEED_VER)); return; }
+  LS.add('drones', {name:'安江大疆机场3', model:'大疆机场3', sn:'安江服务区(沪昆高速1407Km)大疆机场3', buyDate:'2025.9.1', status:'active', battery:'', maxFlight:'55', camera:'', remark:'部署: 安江服务区(沪昆高速1407Km)大疆机场3 | 110°11′50 27°31′11 | 负责人: 彭光伟 17707382502 | 联络员: 王聪 18163996116'});
+  LS.add('drones', {name:'芷江大疆机场3', model:'大疆机场3', sn:'柳寨收费站(沪昆高速1492km)大疆机场3', buyDate:'2025.9.2', status:'active', battery:'', maxFlight:'55', camera:'', remark:'部署: 柳寨收费站(沪昆高速1492km)大疆机场3 | 109°32′76 27°35′50 | 负责人: 彭光伟 17707382502 | 联络员: 王聪 18163996116'});
+  LS.add('drones', {name:'凤凰大疆机场3', model:'大疆机场3', sn:'凤凰(杭瑞高速1272km)大疆机场3', buyDate:'2025.9.3', status:'active', battery:'', maxFlight:'55', camera:'', remark:'部署: 凤凰(杭瑞高速1272km)大疆机场3 | 109°59′78 27°98′22 | 负责人: 彭光伟 17707382502 | 联络员: 王聪 18163996116'});
+  LS.add('drones', {name:'沅陵服务区大疆机场3', model:'大疆机场3', sn:'沅陵服务区(杭瑞高速1140km)大疆机场3', buyDate:'2026.2.1', status:'active', battery:'', maxFlight:'55', camera:'', remark:'部署: 沅陵服务区(杭瑞高速1140km)大疆机场3 | 110°59′24 28°47′37 | 负责人: 何林 18173193387 | 联络员: 王聪 18163996116'});
+  LS.add('drones', {name:'沅陵收费站大疆机场3', model:'大疆机场3', sn:'沅陵收费站(杭瑞高速1159km)大疆机场3', buyDate:'2026.2.2', status:'active', battery:'', maxFlight:'55', camera:'', remark:'部署: 沅陵收费站(杭瑞高速1159km)大疆机场3 | 110°43′69 28°40′79 | 负责人: 何林 18173193387 | 联络员: 王聪 18163996116'});
+  LS.add('drones', {name:'沅陵大疆机场2', model:'大疆机场2', sn:'筲箕湾收费站(杭瑞高速1177km)大疆机场2', buyDate:'2026.2.3', status:'active', battery:'', maxFlight:'55', camera:'', remark:'部署: 筲箕湾收费站(杭瑞高速1177km)大疆机场2 | 110°31′58 28°27′87 | 负责人: 何林 18173193387 | 联络员: 王聪 18163996116'});
+  LS.add('drones', {name:'沅陵DJI Matrice 400', model:'DJI Matrice 400', sn:'Matrice 400', buyDate:'2026.2.4', status:'active', battery:'', maxFlight:'55', camera:'', remark:'部署: Matrice 400 | 110°31′58 28°27′87 | 负责人: 何林 18173193387 | 联络员: 王聪 18163996116'});
+  LS.add('pilots', {name:'吴兆柏', phone:'18163999496', certType:'PUA', certNo:'无', certExpire:'2025-7', dept:'秩序管理', position:'民警', remark:'交警总队PUA培训班第一期'});
+  LS.add('pilots', {name:'唐雨', phone:'18163999033', certType:'PUA', certNo:'无', certExpire:'2025-7', dept:'安江大队', position:'民警', remark:'交警总队PUA培训班第一期'});
+  LS.add('pilots', {name:'刘铁珊', phone:'18074329023', certType:'PUA', certNo:'无', certExpire:'2025-7', dept:'沅陵大队', position:'副大队长', remark:'交警总队PUA培训班第一期'});
+  LS.add('pilots', {name:'王聪', phone:'18163996116', certType:'PUA', certNo:'无', certExpire:'2026-4', dept:'机动勤务', position:'民警', remark:'交警总队PUA培训班第一期'});
+  LS.add('pilots', {name:'吴化霆', phone:'19974350110', certType:'PUA', certNo:'无', certExpire:'2026-4', dept:'机动勤务', position:'民警', remark:'交警总队PUA培训班第一期'});
+  LS.add('pilots', {name:'袁里洋', phone:'18244888912', certType:'PUA', certNo:'无', certExpire:'2026-4', dept:'机动勤务', position:'民警', remark:'交警总队PUA培训班第一期'});
+  LS.add('pilots', {name:'张泽林', phone:'17374551077', certType:'PUA', certNo:'无', certExpire:'2026-6', dept:'机动勤务', position:'民警', remark:'交警总队PUA培训班第一期'});
+  LS.add('pilots', {name:'谢万心', phone:'15874394933', certType:'PUA', certNo:'无', certExpire:'2025-7', dept:'龙山大队', position:'民警', remark:'交警总队PUA培训班第一期'});
+  LS.add('pilots', {name:'杨苏', phone:'18163999318', certType:'CAAC', certNo:'无', certExpire:'2019-11', dept:'芷江大队', position:'民警', remark:'交警总队组织北京考证'});
+  LS.add('pilots', {name:'柴颖佼', phone:'18163999700', certType:'CAAC', certNo:'无', certExpire:'2019-11', dept:'辰溪大队', position:'民警', remark:'交警总队组织北京考证'});
+  LS.add('pilots', {name:'孙艺奉', phone:'18163999356', certType:'CAAC', certNo:'无', certExpire:'2019-11', dept:'洪江大队', position:'民警', remark:'交警总队组织北京考证'});
+  LS.add('pilots', {name:'罗宸', phone:'18174358522', certType:'CAAC', certNo:'无', certExpire:'2019-11', dept:'案侦大队', position:'副大队长', remark:'交警总队组织北京考证'});
+  LS.add('pilots', {name:'袁江', phone:'13365833676', certType:'CAAC', certNo:'无', certExpire:'2019-11', dept:'乾州大队', position:'副大队长', remark:'交警总队组织北京考证'});
+  LS.add('pilots', {name:'阙雪峰', phone:'18174358527', certType:'CAAC', certNo:'无', certExpire:'2019-11', dept:'凤凰大队', position:'副大队长', remark:'交警总队组织北京考证'});
+  LS.add('pilots', {name:'刘振华', phone:'17520427195', certType:'CAAC', certNo:'无', certExpire:'2022-06', dept:'安江大队', position:'民警', remark:'自考'});
+  LS.add('pilots', {name:'梁懿涵', phone:'15580641878', certType:'CAAC', certNo:'无', certExpire:'2018-11', dept:'安江大队', position:'民警', remark:'自考'});
+  LS.add('pilots', {name:'罗宇茜', phone:'18163993299', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'安江大队', position:'民警', remark:'总队培训第一期'});
+  LS.add('pilots', {name:'杨洋', phone:'13762865707', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'凤凰大队', position:'民警', remark:'总队培训第一期'});
+  LS.add('pilots', {name:'龙茜', phone:'15174306223', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'凤凰大队', position:'辅警', remark:'总队培训第一期'});
+  LS.add('pilots', {name:'张铭荃', phone:'18674503325', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'芷江大队', position:'辅警', remark:'总队培训第一期'});
+  LS.add('pilots', {name:'邱文俊', phone:'17608434218', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'芷江大队', position:'辅警', remark:'总队培训第一期'});
+  LS.add('pilots', {name:'汪风', phone:'18874310645', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'机动勤务', position:'辅警', remark:'总队培训第一期'});
+  LS.add('pilots', {name:'丁家仁', phone:'18163999227', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'机动勤务', position:'民警', remark:'总队培训第二期'});
+  LS.add('pilots', {name:'向臻', phone:'18163999227', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'鹤城大队', position:'民警', remark:'总队培训第二期'});
+  LS.add('pilots', {name:'向杰', phone:'18166202251', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'官庄大队', position:'辅警', remark:'总队培训第二期'});
+  LS.add('pilots', {name:'吴宗康', phone:'18711321070', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'乾州大队', position:'辅警', remark:'总队培训第二期'});
+  LS.add('pilots', {name:'向俊洋', phone:'18528240822', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'沅陵大队', position:'辅警', remark:'总队培训第二期'});
+  LS.add('pilots', {name:'杨金霖', phone:'13007163872', certType:'其他', certNo:'无', certExpire:'2025-11', dept:'怀化北大队', position:'辅警', remark:'总队培训第二期'});
+  localStorage.setItem('dr_seed_ver', String(SEED_VER));
+}
+
+// ==================== INIT ====================
+(async function() {
+  // seedData 在云端模式下不运行，避免重复
+  seedData();
+  await syncFromCloud();
+  // 如果云端是空的，首次写入内置数据到云端
+  if (USE_CLOUD && LS.get('drones').length === 0) {
+    seedData();
+    // seedData 已经在 USE_CLOUD 下直接 return 了，需要手动调云端植入
+    if (LS.get('drones').length === 0) {
+      // 播种到云端
+      const droneSeeds = [
+        { id:'seed_d1', data:{name:'安江大疆机场3',model:'大疆机场3',sn:'安江服务区(沪昆高速1407Km)大疆机场3',buyDate:'2025.9.1',status:'active',maxFlight:'55',remark:'部署:安江服务区(沪昆高速1407Km)大疆机场3|负责人:彭光伟17707382502|联络员:王聪18163996116',ts:Date.now(),createTime:new Date().toISOString()}},
+        { id:'seed_d2', data:{name:'芷江大疆机场3',model:'大疆机场3',sn:'柳寨收费站(沪昆高速1492km)大疆机场3',buyDate:'2025.9.2',status:'active',maxFlight:'55',remark:'部署:柳寨收费站(沪昆高速1492km)大疆机场3|负责人:彭光伟17707382502|联络员:王聪18163996116',ts:Date.now(),createTime:new Date().toISOString()}},
+        { id:'seed_d3', data:{name:'凤凰大疆机场3',model:'大疆机场3',sn:'凤凰(杭瑞高速1272km)大疆机场3',buyDate:'2025.9.3',status:'active',maxFlight:'55',remark:'部署:凤凰(杭瑞高速1272km)大疆机场3|负责人:彭光伟17707382502|联络员:王聪18163996116',ts:Date.now(),createTime:new Date().toISOString()}},
+        { id:'seed_d4', data:{name:'沅陵服务区大疆机场3',model:'大疆机场3',sn:'沅陵服务区(杭瑞高速1140km)大疆机场3',buyDate:'2026.2.1',status:'active',maxFlight:'55',remark:'部署:沅陵服务区(杭瑞高速1140km)大疆机场3|负责人:何林18173193387|联络员:王聪18163996116',ts:Date.now(),createTime:new Date().toISOString()}},
+        { id:'seed_d5', data:{name:'沅陵收费站大疆机场3',model:'大疆机场3',sn:'沅陵收费站(杭瑞高速1159km)大疆机场3',buyDate:'2026.2.2',status:'active',maxFlight:'55',remark:'部署:沅陵收费站(杭瑞高速1159km)大疆机场3|负责人:何林18173193387|联络员:王聪18163996116',ts:Date.now(),createTime:new Date().toISOString()}},
+        { id:'seed_d6', data:{name:'沅陵大疆机场2',model:'大疆机场2',sn:'筲箕湾收费站(杭瑞高速1177km)大疆机场2',buyDate:'2026.2.3',status:'active',maxFlight:'55',remark:'部署:筲箕湾收费站(杭瑞高速1177km)大疆机场2|负责人:何林18173193387|联络员:王聪18163996116',ts:Date.now(),createTime:new Date().toISOString()}},
+        { id:'seed_d7', data:{name:'沅陵DJI Matrice 400',model:'DJI Matrice 400',sn:'Matrice 400',buyDate:'2026.2.4',status:'active',maxFlight:'55',remark:'部署:Matrice 400|负责人:何林18173193387|联络员:王聪18163996116',ts:Date.now(),createTime:new Date().toISOString()}}      ];
+      for (const d of droneSeeds) {
+        await fetch(DB_URL + '/drones', { method: 'POST', headers: DB_HEADERS, body: JSON.stringify(d) });
+      }
+      await syncFromCloud();
+    }
+  }
+  renderHome();
+})();
+
+// Tab click events
+document.querySelectorAll('#tabs .tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.page));
+});
+</script>
+</body>
+</html>
